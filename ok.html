@@ -1,0 +1,210 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Ok</title>
+		<style>
+			#canvas {
+				width: 480px;
+				height: 360px;
+				border: 1px solid black;
+			}
+		</style>
+		<script type="text/plain" id="vertex">
+attribute vec2 position;
+attribute vec3 color;
+varying vec3 v_color;
+void main() {
+	gl_Position = vec4(position, 0.0, 1.0);
+	gl_PointSize = 300.0;
+	v_color = color;
+}
+		</script>
+		<script type="text/plain" id="fragment">
+precision mediump float;
+varying vec3 v_color;
+void main() {
+	gl_FragColor = vec4(v_color, 1.0);
+}
+		</script>
+		<script type="text/javascript">
+			function do_cont_iterator(statements, value) {
+				let next = statements.next(value);
+				return next.done ? next.value : next.value(
+					value => do_cont_iterator(statements, value));
+			}
+			function do_cont(generator) {
+				return do_cont_iterator(generator(), null);
+			}
+			function* main() {
+				let canvas = document.getElementById("canvas");
+				canvas.width = canvas.clientWidth;
+				canvas.height = canvas.clientHeight;
+				let vertex_source = document.getElementById("vertex").text;
+				let fragment_source =
+					document.getElementById("fragment").text;
+				let gl = canvas.getContext("webgl");
+				class Shader {
+					constructor(object) {
+						this.object = object;
+					}
+					static create(type) {
+						return cont => {
+							let shader =
+								new Shader(gl.createShader(type));
+							try {
+								return cont(shader);
+							} finally {
+								gl.deleteShader(shader.object);
+								shader.object = null;
+							}
+						};
+					}
+					compile(source) {
+						gl.shaderSource(this.object, source);
+						gl.compileShader(this.object);
+						let status = gl.getShaderParameter(
+							this.object, gl.COMPILE_STATUS);
+						if(status == false) {
+							let error = gl.getShaderInfoLog(this.object);
+							throw new Error(`compile error:\n${error}`);
+						}
+					}
+					attach(program) {
+						return cont => {
+							gl.attachShader(program.object, this.object);
+							try {
+								return cont();
+							} finally {
+								gl.detachShader(
+									program.object, this.object);
+							}
+						};
+					}
+				};
+				class Program {
+					constructor(object) {
+						this.object = object;
+					}
+					static create() {
+						return cont => {
+							let program = new Program(gl.createProgram());
+							try {
+								return cont(program);
+							} finally {
+								gl.deleteProgram(program.object);
+								program.object = null;
+							}
+						};
+					}
+					link(vertex, fragment) {
+						do_cont(function*() {
+							yield vertex.attach(this);
+							yield fragment.attach(this);
+							gl.linkProgram(this.object);
+						}.bind(this));
+						let status = gl.getProgramParameter(
+							this.object, gl.LINK_STATUS);
+						if(status == false) {
+							let error = gl.getProgramInfoLog(this.object);
+							throw new Error(`link error:\n${error}`);
+						}
+					}
+					use() {
+						return cont => {
+							let old = gl.getParameter(gl.CURRENT_PROGRAM);
+							try {
+								gl.useProgram(this.object);
+								return cont();
+							} finally {
+								gl.useProgram(old);
+							}
+						};
+					}
+					find_attribute(name) {
+						let location =
+							gl.getAttribLocation(this.object, name);
+						if(location < 0) {
+							throw new Error(
+								`attribute "${name}" not found`);
+						}
+						return location;
+					}
+					find_uniform(name) {
+						let location =
+							gl.getUniformLocation(this.object, name);
+						if(location == null) {
+							throw new Error(`uniform "${name}" not found`);
+						}
+						return location;
+					}
+				}
+				class Buffer {
+					constructor(object) {
+						this.object = object;
+					}
+					static create() {
+						return cont => {
+							let buffer = new Buffer(gl.createBuffer());
+							try {
+								return cont(buffer);
+							} finally {
+								gl.deleteBuffer(buffer.object);
+								buffer.object = null;
+							}
+						};
+					}
+					bind_to_array_buffer() {
+						return cont => {
+							let old =
+								gl.getParameter(gl.ARRAY_BUFFER_BINDING);
+							try {
+								gl.bindBuffer(gl.ARRAY_BUFFER, this.object);
+								return cont();
+							} finally {
+								gl.bindBuffer(gl.ARRAY_BUFFER, old);
+							}
+						};
+					}
+				}
+				let program = yield Program.create();
+				do_cont(function*() {
+					let vertex = yield Shader.create(gl.VERTEX_SHADER);
+					vertex.compile(vertex_source);
+					let fragment = yield Shader.create(gl.FRAGMENT_SHADER);
+					fragment.compile(fragment_source);
+					program.link(vertex, fragment);
+				});
+				let position = program.find_attribute("position");
+				let color = program.find_attribute("color");
+				let positions = yield Buffer.create();
+				do_cont(function*() {
+					yield positions.bind_to_array_buffer();
+					let data =
+						new Float32Array([ -0.5, -0.5, 0.5, -0.5, 0, 0.5 ]);
+					gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+					gl.vertexAttribPointer(
+						position, 2, gl.FLOAT, false, 0, 0);
+					gl.enableVertexAttribArray(position);
+				});
+				let colors = yield Buffer.create();
+				do_cont(function*() {
+					yield colors.bind_to_array_buffer();
+					let data = new Float32Array(
+						[ 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0 ]);
+					gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+					gl.vertexAttribPointer(color, 3, gl.FLOAT, false, 0, 0);
+					gl.enableVertexAttribArray(color);
+				});
+				do_cont(function*() {
+					yield program.use();
+					gl.clearColor(1.0, 1.0, 1.0, 1.0);
+					gl.clear(gl.COLOR_BUFFER_BIT);
+					gl.drawArrays(gl.TRIANGLES, 0, 3);
+				});
+			}
+		</script>
+	</head>
+	<body onload="do_cont(main);">
+		<canvas id="canvas"></canvas>
+	</body>
+</html>
