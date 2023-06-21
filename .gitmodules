@@ -1,0 +1,3 @@
+[submodule "notes"]
+	path = wiki/notes
+	url = https://github.com/popapoe/notes.git

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<style>
+body {
+	margin: 0 auto;
+	max-width: 600px;
+	overflow-y: scroll;
+	font-family: sans-serif;
+}
+wiki-render {
+	margin: 10px;
+}
+		</style>
+		<script src="./script.js"></script>
+		<title>Cring</title>
+	</head>
+	<body>
+		<noscript>
+			<h1>No</h1>
+		</noscript>
+		<template id="wiki-render-template">
+			<style>
+:host {
+	display: block;
+	padding: 10px;
+	border: 2px ridge;
+}
+#heading.error {
+	color: grey;
+	font-style: italic;
+}
+#actions {
+	float: right;
+	display: flex;
+	column-gap: 5px;
+}
+#lift {
+	color: silver;
+	font-weight: lighter;
+	text-decoration: none;
+}
+#lift:hover {
+	text-decoration: underline;
+}
+			</style>
+			<div id="actions">
+				<button id="close">close</button>
+			</div>
+			<div id="progress">
+				<marquee scrollamount="100" truespeed="1">loading</marquee>
+			</div>
+			<section id="section" hidden>
+				<h1><a id="lift" href="">#</a> <span id="heading"></span></h1>
+				<main id="content"></main>
+				<ul id="backlinks"></ul>
+				<ul id="links"></ul>
+			</section>
+		</template>
+		<wiki-container id="container"></wiki-container>
+	</body>
+</html>
+
