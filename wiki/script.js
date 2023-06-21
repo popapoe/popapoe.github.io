@@ -233,6 +233,8 @@ function main() {
 	let top = "top.json";
 	if(window.location.hash != "") {
 		top = decodeURIComponent(window.location.hash.slice(1));
+	} else {
+		window.location.hash = `#${encodeURIComponent(top)}`;
 	}
 	wiki_container.setAttribute("top", top);
 }
