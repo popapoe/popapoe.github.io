@@ -1,0 +1,3 @@
+[submodule "prudent-web"]
+	path = prudent-web
+	url = https://github.com/popapoe/prudent-web.git
