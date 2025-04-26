@@ -1,3 +1,6 @@
 [submodule "prudent-web"]
 	path = prudent-web
 	url = https://github.com/popapoe/prudent-web.git
+[submodule "etris"]
+	path = etris
+	url = https://github.com/popapoe/etris.git
